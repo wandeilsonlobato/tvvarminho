@@ -151,10 +151,9 @@ function nowTitle() {
 }
 function renderGuide() {
   const nx = PROGRAMS[peekNext()].title;
-  openOverlay(`<div class="guide"><h2>PROGRAMAÇÃO · TV VARMINHO</h2><p class="sub">sujeita a alteração sem aviso</p>
-    <div class="row cur"><span class="h">AGORA</span><span class="t">${esc(nowTitle())}</span></div>
-    <div class="row"><span class="h">A SEGUIR</span><span class="t">${esc(nx)}</span></div>
-    <div class="row"><span class="h">DEPOIS</span><span class="t">ELE DECIDE</span></div>
+  const rows = ZAP.map(k => `<div class="row${k === S.current ? ' cur' : ''}"><span class="h">${k === S.current ? 'NO AR' : ''}</span><span class="t">${esc(PROGRAMS[k].title)}</span></div>`).join('');
+  openOverlay(`<div class="guide"><h2>PROGRAMAÇÃO · TV VARMINHO</h2><p class="sub">CH ▲ ▼ troca o programa · a seguir: ${esc(nx)}</p>
+    ${rows}
     <div class="row"><span class="h">03:33</span><span class="t">████████████</span></div>
     <p class="foot">NÃO HÁ GRADE FIXA. HÁ APENAS O SINAL.</p></div>`, 'guide');
 }
@@ -182,7 +181,25 @@ function mountKey(key, opts = {}) {
   PROGRAMS[key].mount(scene, life, opts);
   return life;
 }
-function afterChange() { if (S.overlay === 'guide') renderGuide(); if (S.overlay === 'info') closeOverlay(); }
+function afterChange() {
+  if (S.overlay === 'guide') renderGuide();
+  if (S.overlay === 'info') closeOverlay();
+  const r = document.getElementById('rNow'); if (r) r.textContent = S.on ? nowTitle() : '—';
+}
+
+/* CH ▲ / CH ▼: a emissora é uma só, o controle pula para outro programa dela.
+   Depois disso a transmissão segue sozinha a partir do programa escolhido. */
+const ZAP = ['comunicacao', 'emissao', 'atividade', 'raposinha', 'ginzu'];
+function zap(d) {
+  if (S.current === 'chamado') {
+    showOSD('<small>NÃO DESVIE O OLHAR.</small>', 1800, 'center warn');
+    return;
+  }
+  let i = ZAP.indexOf(S.current);
+  if (i < 0) i = d > 0 ? -1 : 0;
+  const key = ZAP[(i + d + ZAP.length) % ZAP.length];
+  if (key === 'ginzu') playBreak(); else playProgram(key);
+}
 
 function playProgram(key) {
   S.current = key;
@@ -281,7 +298,7 @@ function powerOn() {
 function powerOff() {
   S.on = false; S.ready = false; S.session++;
   killScene(); closeOverlay();
-  S.current = null;
+  S.current = null; afterChange();
   document.body.classList.remove('chamado');
   led.classList.remove('on');
   screenEl.classList.remove('is-live');
@@ -307,6 +324,8 @@ function act(a) {
   if (a === 'power') return power();
   if (!S.on || !S.ready || S.overlay === 'ask') return;
   switch (a) {
+    case 'chup': zap(1); break;
+    case 'chdn': zap(-1); break;
     case 'volup': vol(1); break;
     case 'voldn': vol(-1); break;
     case 'mute': mute(); break;
@@ -318,7 +337,7 @@ function act(a) {
 document.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => act(b.dataset.act)));
 $('#tvPower').addEventListener('click', power);
 
-const KEYS = { ArrowUp: 'volup', ArrowRight: 'volup', ArrowDown: 'voldn', ArrowLeft: 'voldn', p: 'power', m: 'mute', g: 'guide', i: 'info', Escape: 'esc' };
+const KEYS = { ArrowUp: 'chup', ArrowDown: 'chdn', ArrowRight: 'volup', ArrowLeft: 'voldn', p: 'power', m: 'mute', g: 'guide', i: 'info', Escape: 'esc' };
 addEventListener('keydown', e => {
   if (e.target.closest && e.target.closest('input,textarea')) return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;

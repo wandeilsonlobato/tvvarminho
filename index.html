@@ -68,11 +68,15 @@
       <span class="r-ir" id="ir"></span>
       <button class="btn small" data-act="mute">MUDO</button>
     </div>
-    <div class="r-screen">TV VARMINHO<small>canal único</small></div>
+    <div class="r-screen">TV VARMINHO<small id="rNow">—</small></div>
     <div class="rock">
+      <button class="btn" data-act="chup" aria-label="Próximo programa">CH ▲</button>
       <button class="btn" data-act="volup">VOL +</button>
-      <button class="btn green" data-act="guide">GUIA</button>
+      <button class="btn" data-act="chdn" aria-label="Programa anterior">CH ▼</button>
       <button class="btn" data-act="voldn">VOL −</button>
+    </div>
+    <div class="r-row">
+      <button class="btn green" data-act="guide">GUIA</button>
       <button class="btn" data-act="info">INFO</button>
     </div>
     <div class="r-row one">
@@ -82,7 +86,7 @@
   </aside>
 </main>
 
-<p class="hint">Teclado: P liga/desliga · ← → volume · M mudo · G programação · I info</p>
+<p class="hint">Teclado: P liga/desliga · ↑ ↓ troca o programa · ← → volume · M mudo · G programação · I info</p>
 
 <script src="script.js"></script>
 </body>
