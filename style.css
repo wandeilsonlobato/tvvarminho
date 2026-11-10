@@ -428,3 +428,13 @@ body.chamado .tv-body{box-shadow:inset 0 2px 0 rgba(255,255,255,.15),inset 0 -6p
 .seq.video .letreiro,.seq.video .sumido,.seq.video .tempo-tit{display:none}
 .content:has(.p-comunicacao) .bug{bottom:12cqh}
 .r-screen small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* selo da Licença da Comunidade de Ordem Paranormal (img/licenca.png)
+   a licença exige 100% de opacidade e largura mínima de 10% da página */
+.licenca{display:flex;align-items:center;justify-content:center;gap:18px;padding:16px 16px 0;flex-wrap:wrap}
+#room{min-height:auto}
+.licenca img{display:block;width:max(10vw,110px);max-width:160px;height:auto;opacity:1}
+.lic-txt{max-width:560px;color:#c9d2c9;font-size:18px;line-height:1.15}
+.lic-txt p+p{margin-top:6px}
+.lic-txt a{color:var(--g)}
+.lic-txt .aviso{color:#e8c46a}
