@@ -1,6 +1,6 @@
 'use strict';
 /* =========================================================
-   TV VARMINHO — sempre com você.
+   TV VARMINHO — somos todos um.
    ========================================================= */
 
 /* ---------- utilidades ---------- */
@@ -35,50 +35,21 @@ function Life() {
   };
 }
 
-/* ---------- áudio (WebAudio, tudo sintetizado) ---------- */
+/* ---------- áudio ----------
+   O único som da emissora é a fala sem nexo do apresentador do jornal
+   (o vídeo do Guizo toca com o próprio áudio). */
 const Sound = {
-  ctx: null, master: null, noise: null,
+  ctx: null, master: null,
   vol: Math.max(0, Math.min(10, +store.get('tvv-vol', 6) || 6)), muted: false,
   init() {
     if (this.ctx) { this.ctx.resume && this.ctx.resume(); return; }
     const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
     this.ctx = new C();
     this.master = this.ctx.createGain(); this.master.connect(this.ctx.destination);
-    const len = this.ctx.sampleRate * 2, b = this.ctx.createBuffer(1, len, this.ctx.sampleRate), d = b.getChannelData(0);
-    for (let k = 0; k < len; k++) d[k] = Math.random() * 2 - 1;
-    this.noise = b; this.apply();
+    this.apply();
   },
   level() { return this.muted ? 0 : this.vol / 10; },
   apply() { if (this.master) this.master.gain.setTargetAtTime(this.level() * 0.6, this.ctx.currentTime, 0.02); },
-  noiseSrc() { const s = this.ctx.createBufferSource(); s.buffer = this.noise; s.loop = true; return s; },
-  static(dur = 0.35, lvl = 0.4) {
-    if (!this.ctx) return;
-    const s = this.noiseSrc(), g = this.ctx.createGain(), t = this.ctx.currentTime;
-    g.gain.setValueAtTime(lvl, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    s.connect(g).connect(this.master); s.start(t); s.stop(t + dur + 0.05);
-  },
-  staticLoop(lvl = 0.1) {
-    if (!this.ctx) return () => {};
-    const s = this.noiseSrc(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
-    f.type = 'highpass'; f.frequency.value = 800; g.gain.value = lvl;
-    s.connect(f).connect(g).connect(this.master); s.start();
-    return () => { try { s.stop(); } catch (e) { /* ok */ } g.disconnect(); };
-  },
-  tone(freq, dur = 0.2, type = 'square', lvl = 0.15, when = 0, detune = 0) {
-    if (!this.ctx) return;
-    const o = this.ctx.createOscillator(), g = this.ctx.createGain(), t = this.ctx.currentTime + when;
-    o.type = type; o.frequency.value = freq; o.detune.value = detune;
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(lvl, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    o.connect(g).connect(this.master); o.start(t); o.stop(t + dur + 0.05);
-  },
-  hum() {
-    if (!this.ctx) return () => {};
-    const g = this.ctx.createGain(); g.gain.value = 0; g.gain.setTargetAtTime(0.16, this.ctx.currentTime, 1.5);
-    const os = [55, 110.7, 166.1].map((f, k) => { const o = this.ctx.createOscillator(); o.type = k ? 'sine' : 'sawtooth'; o.frequency.value = f; o.connect(g); o.start(); return o; });
-    const lfo = this.ctx.createOscillator(), lg = this.ctx.createGain(); lfo.frequency.value = 0.33; lg.gain.value = 0.07;
-    lfo.connect(lg).connect(g.gain); lfo.start(); g.connect(this.master);
-    return () => { [...os, lfo].forEach(o => { try { o.stop(); } catch (e) { /* ok */ } }); g.disconnect(); };
-  },
   babble(base = 115) {
     if (!this.ctx) return { talk() {}, stop() {} };
     const o = this.ctx.createOscillator(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
@@ -94,54 +65,7 @@ const Sound = {
       } else g.gain.setTargetAtTime(0, t, 0.02);
     }, 90);
     return { talk(v) { on = v; }, stop() { clearInterval(id); try { o.stop(); } catch (e) { /* ok */ } g.disconnect(); } };
-  },
-  crowd() {
-    if (!this.ctx) return () => {};
-    const s = this.noiseSrc(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
-    f.type = 'bandpass'; f.frequency.value = 600; f.Q.value = 0.6; g.gain.value = 0.05;
-    s.connect(f).connect(g).connect(this.master); s.start();
-    return () => { try { s.stop(); } catch (e) { /* ok */ } g.disconnect(); };
-  },
-  whistle() { for (let i = 0; i < 4; i++) this.tone(i % 2 ? 3100 : 2850, 0.08, 'sine', 0.07, i * 0.08); },
-  splat() {
-    if (!this.ctx) return;
-    const t = this.ctx.currentTime;
-    const s = this.noiseSrc(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
-    f.type = 'lowpass'; f.frequency.value = 380; g.gain.setValueAtTime(0.8, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
-    s.connect(f).connect(g).connect(this.master); s.start(t); s.stop(t + 0.8);
-    const o = this.ctx.createOscillator(), og = this.ctx.createGain();
-    o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.5);
-    og.gain.setValueAtTime(0.3, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-    o.connect(og).connect(this.master); o.start(t); o.stop(t + 0.55);
-  },
-  boom() {
-    if (!this.ctx) return;
-    const t = this.ctx.currentTime, s = this.noiseSrc(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
-    f.type = 'lowpass'; f.frequency.value = 220; g.gain.setValueAtTime(1, t); g.gain.exponentialRampToValueAtTime(0.001, t + 1.4);
-    s.connect(f).connect(g).connect(this.master); s.start(t); s.stop(t + 1.5);
   }
-};
-
-/* ---------- voz sintetizada do navegador ---------- */
-const TTS = {
-  voice: null, ok: 'speechSynthesis' in window,
-  init() {
-    if (!this.ok) return;
-    const choose = () => {
-      const vs = speechSynthesis.getVoices();
-      this.voice = vs.find(v => /pt[-_]BR/i.test(v.lang)) || vs.find(v => /^pt/i.test(v.lang)) || null;
-    };
-    choose(); speechSynthesis.onvoiceschanged = choose;
-  },
-  say(text, { rate = 1, pitch = 0.6, cancel = false } = {}) {
-    if (!this.ok || Sound.level() === 0) return;
-    if (cancel) speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'pt-BR'; if (this.voice) u.voice = this.voice;
-    u.rate = rate; u.pitch = pitch; u.volume = Math.min(1, Sound.level() * 1.2);
-    speechSynthesis.speak(u);
-  },
-  stop() { if (this.ok) speechSynthesis.cancel(); }
 };
 
 /* ---------- elementos ---------- */
@@ -158,9 +82,9 @@ const S = {
 
 /* ---------- programação: uma única emissora, sem grade fixa ---------- */
 const PROGRAMS = {
-  comunicacao: { title: 'COMUNICAÇÃO', dur: 100000, mount: mountComunicacao,
-    info: 'Telejornal com William Bonantos. Notícias de Varminho, previsão do tempo e o quadro "Quem Ainda Está Assistindo?".' },
-  emissao: { title: 'EMISSÃO VOCÊ', dur: 70000, mount: mountEmissao,
+  comunicacao: { title: 'COMUNICAÇÃO', dur: 66000, mount: mountComunicacao,
+    info: 'Telejornal com William Bonantos. Pessoas desaparecidas, previsão do tempo e reportagens.' },
+  emissao: { title: 'EMISSÃO VOCÊ', dur: 68000, mount: mountEmissao,
     info: 'Culinária com Joana Traga e seu fiel companheiro, Ruivo Zezé.' },
   atividade: { title: 'ATIVIDADE FÍSICA', dur: 50000, mount: mountAtividade,
     info: 'Transmissão esportiva ao vivo. AAA contra ZZZ. As regras podem mudar durante a partida.' },
@@ -199,7 +123,7 @@ function drawStatic() {
 (function staticLoop() { if (staticVisible) drawStatic(); requestAnimationFrame(staticLoop); })();
 function setStatic(v) { staticVisible = v; staticCv.classList.toggle('show', v); }
 function flashStatic(ms = 300) {
-  setStatic(true); Sound.static(ms / 1000 + 0.05, 0.3);
+  setStatic(true);
   clearTimeout(staticT); staticT = setTimeout(() => setStatic(false), ms);
 }
 
@@ -240,7 +164,7 @@ function showInfo() {
   const k = S.current;
   let html;
   if (k === 'chamado') html = `<b>████████</b>Você já sabe o que é.<small>Classificação: para quem entende.</small>`;
-  else if (!k || k === 'bumper') html = `<b>TV VARMINHO</b>Sempre com você.<small>Transmitindo da Torre, em Varminho.</small>`;
+  else if (!k || k === 'bumper') html = `<b>TV VARMINHO</b>Somos todos um.<small>Transmitindo da Torre, em Varminho.</small>`;
   else html = `<b>${esc(nowTitle())}</b>${esc(PROGRAMS[k].info)}<small>Classificação: livre para todos os espectadores dignos.</small>`;
   openOverlay(`<div class="info">${html}</div>`, 'info');
   infoT = setTimeout(() => { if (S.overlay === 'info') closeOverlay(); }, 5000);
@@ -248,8 +172,7 @@ function showInfo() {
 
 /* ---------- transmissão ---------- */
 function killScene() {
-  if (S.life) { S.life.kill(); S.life = null; }
-  TTS.stop(); setStatic(false);
+  if (S.life) { S.life.kill(); S.life = null; } setStatic(false);
 }
 function mountKey(key, opts = {}) {
   killScene();
@@ -299,18 +222,15 @@ function vol(d) {
   Sound.muted = false;
   Sound.vol = Math.max(0, Math.min(10, Sound.vol + d));
   store.set('tvv-vol', Sound.vol); Sound.apply(); showVol(); syncMedia();
-  if (Sound.vol === 0) TTS.stop();
 }
-function mute() { Sound.muted = !Sound.muted; Sound.apply(); showVol(); syncMedia(); if (Sound.muted) TTS.stop(); }
+function mute() { Sound.muted = !Sound.muted; Sound.apply(); showVol(); syncMedia(); }
 
 /* ---------- ligar / desligar ---------- */
 function vinheta(done) {
   killScene();
   const life = S.life = Life();
   scene.className = 'scene';
-  scene.innerHTML = `<div class="vinheta">${LOGO}<div class="vin-title">TV VARMINHO</div><div class="vin-tag">sempre com você</div></div>`;
-  [523, 659, 784, 1047].forEach((f, k) => Sound.tone(f, 0.5, 'triangle', 0.12, k * 0.18));
-  Sound.tone(1108, 1.1, 'sine', 0.06, 0.8, -35);
+  scene.innerHTML = `<div class="vinheta">${LOGO}<div class="vin-title">TV VARMINHO</div><div class="vin-tag">somos todos um</div></div>`;
   life.timeout(done, 3300);
 }
 
@@ -326,7 +246,6 @@ function askName(done) {
     if (sess !== S.session) return;
     S.name = n; store.set('tvv-nome', n);
     overlay.innerHTML = `<div class="ask"><h2>OBRIGADO, ${esc(n)}.</h2><p>Nós já sabíamos.</p></div>`;
-    Sound.tone(220, 0.8, 'sine', 0.1);
     setTimeout(() => { if (sess !== S.session) return; closeOverlay(); done(); }, 2000);
   };
   f.addEventListener('submit', e => { e.preventDefault(); finish(inp.value.trim().toUpperCase() || 'VOCÊ'); });
@@ -334,15 +253,14 @@ function askName(done) {
 }
 
 function powerOn() {
-  Sound.init(); TTS.init();
+  Sound.init();
   S.on = true; S.ready = false;
   const sess = ++S.session;
   led.classList.add('on');
   screenEl.classList.remove('off', 'off-anim');
   screenEl.classList.add('on-anim');
   setTimeout(() => screenEl.classList.remove('on-anim'), 650);
-  Sound.tone(60, 0.5, 'sine', 0.25);
-  setStatic(true); Sound.static(0.7, 0.3);
+  setStatic(true);
   setTimeout(() => {
     if (sess !== S.session) return;
     setStatic(false);
@@ -368,7 +286,6 @@ function powerOff() {
   led.classList.remove('on');
   screenEl.classList.remove('is-live');
   screenEl.classList.add('off-anim');
-  Sound.tone(900, 0.15, 'sine', 0.08);
   setTimeout(() => {
     if (S.on) return;
     screenEl.classList.remove('off-anim'); screenEl.classList.add('off');
@@ -379,7 +296,6 @@ function power() {
   if (S.on && S.current === 'chamado' && S.chamadoBlocks > 0) {
     S.chamadoBlocks--;
     showOSD('<small>NÃO DESVIE O OLHAR.</small>', 1800, 'center warn');
-    Sound.tone(110, 0.4, 'sawtooth', 0.15);
     return;
   }
   if (S.on) powerOff(); else powerOn();
@@ -458,12 +374,32 @@ function shot(el, file, cls = '') {
   return el.querySelector('.shot');
 }
 
-/* ---------- COMUNICAÇÃO ---------- */
-const VIEWERS = ['BENEDITO ARAÚJO', 'CARLA MENDES', 'DARA ALICE VENTURINI', 'EDIMEIA SOARES', 'ERIBERTO VIAMÃO', 'FÁTIMA ROCHA',
-  'GUILHERME SANTOS', 'HELENA DUARTE', 'IVONE CASTRO', 'JERSON DA SILVA', 'LUDISMILA SOARES', 'MORATO VERTALER',
-  'NATÁLIA PIRES', 'OTÁVIO LIMA', 'REGINA CRUZES', 'SEBASTIÃO MOURA', 'TEREZA ALVES', 'VICENTE SANTOS', 'ZÉLIA RAMOS'];
+/* Sequência de quadros: todas as imagens empilhadas, a câmera passeia
+   continuamente e os cortes só trocam qual imagem está no ar. */
+function frames(el, files, cls = '') {
+  el.innerHTML = `<div class="shot seq ${cls}">
+      ${files.map(f => `<img src="img/programas/${f}" alt="" draggable="false">`).join('')}
+      <div class="legenda"></div>
+    </div>`;
+  const imgs = [...el.querySelectorAll('.seq img')], cap = el.querySelector('.legenda');
+  return {
+    imgs,
+    show(i, text = '') { imgs.forEach((im, k) => im.classList.toggle('on', k === i)); cap.innerHTML = text; }
+  };
+}
 
-/* Reportagem que o jornal exibe (img/programas/guizo.mp4) */
+/* ---------- COMUNICAÇÃO ---------- */
+/* Pessoas desaparecidas: o letreiro do rodapé lista todos os nomes;
+   quem tiver foto aparece no quadro ao lado do apresentador.
+   Para incluir uma foto: salve em img/programas/desaparecidos/ e preencha "foto". */
+const DESAPARECIDOS = [
+  { nome: '', foto: 'desaparecidos/garota.webp' },
+  { nome: 'DARA ALICE VENTURINI' }, { nome: 'VICENTE SANTOS' }, { nome: 'JERSON DA SILVA' },
+  { nome: 'MORATO VERTALER' }, { nome: 'EDIMEIA SOARES' }, { nome: 'ERIBERTO VIAMÃO' },
+  { nome: 'LUDISMILA SOARES' }, { nome: 'REGINA CRUZES' }, { nome: 'RAUL CRUZES' }, { nome: 'JOHN NOBLE' }
+];
+
+/* Reportagem que o jornal exibe (img/programas/guizo.mp4) — único vídeo com som */
 function playReport(el, life, file) {
   return new Promise(resolve => {
     const box = document.createElement('div');
@@ -481,92 +417,98 @@ function playReport(el, life, file) {
 }
 
 function mountComunicacao(el, life) {
-  shot(el, 'comunicacao.webp');
-  // William Bonantos fala, mas ninguém entende o que ele diz
+  const f = frames(el, ['comunicacao.webp', 'previsao.webp']);
+  const comFoto = DESAPARECIDOS.filter(p => p.foto);
+  const nomes = DESAPARECIDOS.filter(p => p.nome).map(p => p.nome);
+  el.querySelector('.seq').insertAdjacentHTML('beforeend', `
+    <div class="sumido"><img alt=""><b></b><span>DESAPARECIDA</span></div>
+    <div class="tempo-tit">PREVISÃO DO TEMPO · VARMINHO</div>
+    <div class="letreiro"><span class="tag">DESAPARECIDOS</span><div class="corre"><span>${nomes.join(' &nbsp;•&nbsp; ')} &nbsp;•&nbsp; </span></div></div>`);
+  const card = el.querySelector('.sumido'), seq = el.querySelector('.seq');
+  // William Bonantos fala, mas ninguém entende o que ele diz (o único som além do vídeo)
   const voice = Sound.babble(); life.add(() => voice.stop());
+  let n = 0;
+  const showCard = () => {
+    if (!comFoto.length) return;
+    const p = comFoto[n++ % comFoto.length];
+    card.querySelector('img').src = 'img/programas/' + p.foto;
+    card.querySelector('b').textContent = p.nome || '';
+    card.querySelector('span').textContent = p.genero === 'm' ? 'DESAPARECIDO' : 'DESAPARECIDA';
+    card.classList.add('on');
+  };
   (async () => {
-    await life.sleep(800);
+    await life.sleep(600);
     while (life.alive) {
-      voice.talk(true); await life.sleep(rand(7000, 9000));
-      voice.talk(false); await life.sleep(800);
-      // o jornal chama a reportagem
+      // apresentador + foto de desaparecida
+      f.show(0); seq.classList.remove('tempo');
+      voice.talk(true); await life.sleep(1200);
+      showCard(); await life.sleep(7500);
+      card.classList.remove('on'); await life.sleep(800);
+      // previsão do tempo (ele continua falando por cima)
+      f.show(1); seq.classList.add('tempo'); await life.sleep(8000);
+      f.show(0); seq.classList.remove('tempo'); await life.sleep(3500);
+      voice.talk(false); await life.sleep(700);
+      // reportagem
       flashStatic(140);
+      seq.classList.add('video');
       await playReport(el, life, 'guizo.mp4');
       if (!life.alive) return;
-      voice.talk(true); await life.sleep(rand(4000, 6000));
-      voice.talk(false); await life.sleep(1500);
-      // quadro fixo: "Quem Ainda Está Assistindo?"
-      TTS.say('quem ainda está assistindo?', { rate: 0.8, pitch: 0.3 });
-      await life.sleep(2600);
-      const me = S.name || 'VOCÊ';
-      const names = [...new Set([...VIEWERS, me])].sort((a, b) => a.localeCompare(b, 'pt'));
-      for (const nm of names) {
-        if (!life.alive) return;
-        const isMe = nm === me;
-        TTS.say(nm.toLowerCase(), { rate: isMe ? 0.7 : 1.05, pitch: isMe ? 0.3 : 0.5 });
-        await life.sleep(isMe ? 3800 : 1200);
-      }
-      TTS.say(`obrigado por continuar assistindo, ${me.toLowerCase()}.`, { rate: 0.85, pitch: 0.4 });
-      await life.sleep(4500);
+      seq.classList.remove('video');
+      voice.talk(true); await life.sleep(rand(5000, 7000));
+      voice.talk(false); await life.sleep(1200);
     }
   })();
 }
 
 /* ---------- EMISSÃO VOCÊ ---------- */
-const JOANA_LINES = [
-  'Bom diaaa, meu querido! Bom dia, minha querida!',
-  'Hoje no Emissão Você a gente vai fazer um macarrão muito especial.',
-  'Zezé, dá bom dia pro pessoal!',
-  '[silêncio]',
-  'Ele tá tímido hoje. Ele tá sempre tímido.',
-  'Primeiro a gente separa os ingredientes. Bem fresquinhos.',
-  'Os olhinhos dão textura, viu? Não precisa ter medo.',
-  'Hmm... tá ótimo. Tá... ótimo.'
-];
 function mountEmissao(el, life) {
-  shot(el, 'emissao.webp');
+  const f = frames(el, ['emissao.webp', 'emissao/rosto.webp', 'emissao/passando-mal.webp',
+    'emissao/panela.webp', 'emissao/pratos.webp', 'emissao/pratos-garota.webp']);
+  const garota = f.imgs[5];
+  const pisca = ms => { garota.classList.add('on'); life.timeout(() => garota.classList.remove('on'), ms); };
+  const ROTEIRO = [
+    [0, '', 9000],
+    [1, '', 3500],
+    [0, '', 3000],
+    [2, '', 6000],
+    [3, 'ESSES SÃO OS INGREDIENTES<br>DA NOSSA RECEITA<i>!!!</i>', 5000],
+    [4, 'HUMMM<i>!!</i>... ESPERO QUE GOSTEM<i>!!...</i>', 7000]
+  ];
   (async () => {
-    await life.sleep(700);
+    await life.sleep(300);
     while (life.alive) {
-      for (const line of JOANA_LINES) {
+      for (const [i, txt, ms] of ROTEIRO) {
         if (!life.alive) return;
-        if (!line.startsWith('[')) TTS.say(line, { rate: 1.08, pitch: 1.5 });
-        await life.sleep(Math.max(3000, line.length * 75));
+        f.show(i, txt);
+        if (i === 4) {
+          // do nada, a foto da garota pisca no mesmo lugar
+          life.timeout(() => pisca(rand(120, 220)), rand(1500, 3000));
+          if (Math.random() < 0.6) life.timeout(() => pisca(rand(80, 160)), rand(4200, 6200));
+        }
+        await life.sleep(ms);
       }
-      await life.sleep(2500);
     }
   })();
 }
 
 /* ---------- ATIVIDADE FÍSICA ---------- */
-function mountAtividade(el, life) {
-  shot(el, 'atividade.webp', 'top');
-  const NARR = ['e ele chuta a bola', 'a outra bola também', 'o juiz marca tudo', 'gol talvez', 'que partida emocionante',
-    'ninguém respira', 'os dois goleiros defendem a mesma trave', 'a torcida sorri', 'a regra mudou de novo'];
-  life.interval(() => { TTS.say(pick(NARR), { rate: 0.75, pitch: 0.2 }); }, 6500);
-  life.interval(() => { if (Math.random() < 0.4) Sound.whistle(); }, 9000);
-  life.add(Sound.crowd());
-}
+function mountAtividade(el) { shot(el, 'atividade.webp', 'top'); }
 
 /* ---------- BASEBALL abcdefghjklmpqrtuvwxyz ---------- */
-function mountRaposinha(el, life) {
-  shot(el, 'raposinha.webp');
-  [523, 587, 659, 523, 784, 740, 523, 494].forEach((f, k) => Sound.tone(f, 0.15, 'square', 0.06, k * 0.17, rand(-40, 40)));
-  life.timeout(() => TTS.say('No próximo episódio: Raposinha morre!', { rate: 1.1, pitch: 1.3 }), PROGRAMS.raposinha.dur - 6000);
-}
+function mountRaposinha(el) { shot(el, 'raposinha.webp'); }
 
 /* ---------- INTERVALO: GINZU 8001 ---------- */
 /* Quadros do comercial, na ordem da transmissão original.
    A faca e os itens (dedo, osso, olho, orelha) são camadas recortadas da
    imagem em alta (img/programas/ginzu/), que vão aparecendo uma a uma. */
 const GINZU = [
-  { cena: 'rapo', items: 0, cap: 'CANSADO DE SER ENGANADO<i>?!?!...</i>', fala: 'Cansado de ser enganado?!', ms: 2400 },
-  { cena: 'zoom', items: 0, cap: 'AMEAÇADO OU MORTO<i>?!?!...</i>', fala: 'Ameaçado ou morto?!', ms: 2400 },
-  { cena: 'faca', items: 0, cap: 'A NOVA <b>GUINZU 8001</b> É<br>PERFEITA PARA O COMBATE<i>!!</i>', fala: 'A nova Guinzu 8001 é perfeita para o combate!', ms: 3600 },
-  { cena: 'faca', items: 1, cap: 'ELA É CAPAZ DE CORTAR DEDOS<i>!!!</i>', fala: 'Ela é capaz de cortar dedos!', ms: 2400 },
-  { cena: 'faca', items: 2, cap: 'FATIAR OSSOS<i>!!!</i>', fala: 'Fatiar ossos!', ms: 1800 },
-  { cena: 'faca', items: 3, cap: 'PERFURAR OLHOS<i>!!</i>', fala: 'Perfurar olhos!', ms: 1800 },
-  { cena: 'faca', items: 4, cap: 'MUTILAR ORELHAS<i>!!</i>', fala: 'Mutilar orelhas!', ms: 2600 }
+  { cena: 'rapo', items: 0, cap: 'CANSADO DE SER ENGANADO<i>?!?!...</i>', ms: 2400 },
+  { cena: 'zoom', items: 0, cap: 'AMEAÇADO OU MORTO<i>?!?!...</i>', ms: 2400 },
+  { cena: 'faca', items: 0, cap: 'A NOVA <b>GUINZU 8001</b> É<br>PERFEITA PARA O COMBATE<i>!!</i>', ms: 3600 },
+  { cena: 'faca', items: 1, cap: 'ELA É CAPAZ DE CORTAR DEDOS<i>!!!</i>', ms: 2400 },
+  { cena: 'faca', items: 2, cap: 'FATIAR OSSOS<i>!!!</i>', ms: 1800 },
+  { cena: 'faca', items: 3, cap: 'PERFURAR OLHOS<i>!!</i>', ms: 1800 },
+  { cena: 'faca', items: 4, cap: 'MUTILAR ORELHAS<i>!!</i>', ms: 2600 }
 ];
 const GINZU_ITEMS = ['dedo', 'osso', 'olho', 'orelha'];
 function mountGinzu(el, life, opts = {}) {
@@ -590,8 +532,6 @@ function mountGinzu(el, life, opts = {}) {
         faca.classList.toggle('on', !isRapo);
         items.forEach((im, i) => im.classList.toggle('on', !isRapo && i < q.items));
         cap.innerHTML = q.cap;
-        Sound.tone(pick([196, 220, 247]), 0.15, 'square', 0.1);
-        TTS.say(q.fala, { rate: 1.25, pitch: 0.5, cancel: true });
         await life.sleep(q.ms);
       }
       await life.sleep(800);
@@ -603,7 +543,6 @@ function mountGinzu(el, life, opts = {}) {
 /* ---------- vinheta "A SEGUIR" ---------- */
 function mountBumper(el, life, opts) {
   el.innerHTML = `<div class="vinheta bumper">${LOGO}<div class="b-label">A SEGUIR</div><div class="b-title">${esc(PROGRAMS[opts.next].title)}</div></div>`;
-  [784, 659, 523].forEach((f, k) => Sound.tone(f, 0.35, 'triangle', 0.1, k * 0.15));
   life.timeout(opts.onEnd, 3000);
 }
 
@@ -612,5 +551,4 @@ function mountChamado(el, life) {
   el.innerHTML = `<div class="shot chamado-shot"><img src="img/programas/chamado.webp" alt="" draggable="false"><div class="tint"></div></div>`;
   document.body.classList.add('chamado'); life.add(() => document.body.classList.remove('chamado'));
   S.chamadoBlocks = 1;
-  life.add(Sound.hum());
 }

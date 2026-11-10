@@ -397,3 +397,33 @@ body.chamado .tv-body{box-shadow:inset 0 2px 0 rgba(255,255,255,.15),inset 0 -6p
   text-shadow:.25cqw 0 0 #1a1600,-.25cqw 0 0 #1a1600,0 .25cqw 0 #1a1600,0 -.25cqw 0 #1a1600,.3cqw .35cqw .4cqw rgba(0,0,0,.8)}
 .gz-cap b{font-size:1.18em;font-weight:900}
 .gz-cap i{font-style:normal;font-size:1.25em;color:#fff35a}
+
+/* ---------- sequências de quadros ---------- */
+.seq img{opacity:0}
+.seq img.on{opacity:1}
+.legenda,.gz-cap{position:absolute;left:4cqw;right:4cqw;bottom:6.5cqh;z-index:3;text-align:center;
+  font-family:'Arial Black','Archivo Black',Arial,sans-serif;font-weight:900;font-size:3.5cqw;line-height:1.15;
+  color:#f3e64b;letter-spacing:.05cqw;
+  text-shadow:.25cqw 0 0 #1a1600,-.25cqw 0 0 #1a1600,0 .25cqw 0 #1a1600,0 -.25cqw 0 #1a1600,.3cqw .35cqw .4cqw rgba(0,0,0,.8)}
+.legenda i{font-style:normal;font-size:1.25em;color:#fff35a}
+
+/* ---------- jornal: desaparecidos, previsão e letreiro ---------- */
+.sumido{position:absolute;right:5cqw;top:13cqh;width:25cqw;z-index:3;background:#f2f2f2;padding:.8cqw .8cqw 1cqw;
+  box-shadow:0 1cqh 2cqh rgba(0,0,0,.6);text-align:center;font-family:'Archivo Black',sans-serif;
+  transform:translateX(140%);transition:transform .5s cubic-bezier(.3,1.2,.5,1)}
+.sumido.on{transform:none}
+.sumido img{display:block;width:100%;height:auto;inset:auto;aspect-ratio:150/178;object-fit:cover;opacity:1!important;position:static;animation:none}
+.sumido b{display:block;color:#111;font-size:2cqw;margin-top:.6cqh;line-height:1.1}
+.sumido b:empty{display:none}
+.sumido span{display:block;background:#c4161c;color:#fff;font-size:2.2cqw;margin-top:.6cqh;padding:.3cqh 0;letter-spacing:.2cqw}
+.seq.tempo .sumido{display:none}
+.tempo-tit{position:absolute;right:5cqw;top:4.5cqh;z-index:3;text-align:right;background:rgba(8,20,40,.85);padding:.6cqh 2cqw;border-left:.8cqw solid #c4161c;font-family:'Archivo Black',sans-serif;
+  font-size:3.2cqw;color:#fff;text-shadow:0 .3cqh .6cqh #000;opacity:0;transition:opacity .3s}
+.seq.tempo .tempo-tit{opacity:1}
+.letreiro{position:absolute;left:0;right:0;bottom:3.5cqh;height:7cqh;z-index:3;display:flex;align-items:stretch;
+  background:rgba(8,20,40,.92);border-top:.4cqh solid #c4161c;font-family:'Archivo Black',sans-serif}
+.letreiro .tag{flex:none;display:flex;align-items:center;padding:0 2cqw;background:#c4161c;color:#fff;font-size:2.4cqw;letter-spacing:.15cqw}
+.letreiro .corre{flex:1;overflow:hidden;display:flex;align-items:center;white-space:nowrap}
+.letreiro .corre span{display:inline-block;padding-left:100%;color:#fff;font-size:2.7cqw;animation:crawl 38s linear infinite}
+.seq.video .letreiro,.seq.video .sumido,.seq.video .tempo-tit{display:none}
+.content:has(.p-comunicacao) .bug{bottom:12cqh}
