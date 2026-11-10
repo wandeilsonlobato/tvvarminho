@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TV Varminho</title>
+<meta name="description" content="TV Varminho — sempre com você.">
+<link rel="icon" href="img/logo%20tv%20varminho.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=VT323&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Logo da TV Varminho (vetor recriado a partir de img/logo tv varminho.webp) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <mask id="logo-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="536" height="536">
+      <circle cx="268" cy="268" r="268" fill="#fff"/>
+      <polygon points="101.2,62.1 412.3,45.7 524,336.6 281.9,532.6 20.6,363" fill="#000"/>
+      <circle cx="268" cy="268" r="176" fill="none" stroke="#fff" stroke-width="28"/>
+      <polygon points="237.3,144.8 390.1,303 176.6,356.2" fill="none" stroke="#fff" stroke-width="30" stroke-linejoin="miter"/>
+      <circle cx="268" cy="268" r="33" fill="#fff"/>
+    </mask>
+    <symbol id="logo" viewBox="0 0 536 536">
+      <rect width="536" height="536" fill="currentColor" mask="url(#logo-mask)"/>
+    </symbol>
+  </defs>
+</svg>
+
+<main id="room">
+  <section class="tv" aria-label="Televisor TV Varminho">
+    <div class="tv-body">
+      <div class="bezel">
+        <div class="screen off" id="screen">
+          <div class="content" id="content">
+            <div class="scene" id="scene"></div>
+            <canvas id="static" width="200" height="150"></canvas>
+            <div class="hud">
+              <div class="live"><span class="dot"></span>AO VIVO</div>
+              <div class="clock" id="clock">00:00</div>
+              <div class="bug"><svg class="logo" viewBox="0 0 536 536"><use href="#logo"/></svg></div>
+            </div>
+            <div class="osd" id="osd"></div>
+            <div class="volbar" id="volbar"></div>
+            <div class="overlay" id="overlay"></div>
+            <div class="subliminal" id="subliminal"></div>
+          </div>
+          <div class="scanlines"></div>
+          <div class="glass"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="brand">VARMINHO</div>
+        <div class="grille"></div>
+        <div class="knobs"><div class="knob"></div><div class="knob"></div></div>
+        <div class="led" id="led"></div>
+        <button class="tv-power" id="tvPower" aria-label="Ligar ou desligar a TV">⏻</button>
+      </div>
+    </div>
+    <div class="feet"><span></span><span></span></div>
+  </section>
+
+  <aside class="remote" aria-label="Controle remoto">
+    <div class="r-top">
+      <button class="btn power" data-act="power" aria-label="Ligar ou desligar">⏻</button>
+      <span class="r-ir" id="ir"></span>
+      <button class="btn small" data-act="mute">MUDO</button>
+    </div>
+    <div class="r-screen">TV VARMINHO<small>canal único</small></div>
+    <div class="rock">
+      <button class="btn" data-act="volup">VOL +</button>
+      <button class="btn green" data-act="guide">GUIA</button>
+      <button class="btn" data-act="voldn">VOL −</button>
+      <button class="btn" data-act="info">INFO</button>
+    </div>
+    <div class="r-row one">
+      <button class="btn" data-act="esc">SAIR</button>
+    </div>
+    <div class="r-logo"><svg class="logo" viewBox="0 0 536 536"><use href="#logo"/></svg>VARMINHO</div>
+  </aside>
+</main>
+
+<p class="hint">Teclado: P liga/desliga · ← → volume · M mudo · G programação · I info</p>
+
+<script src="script.js"></script>
+</body>
+</html>
